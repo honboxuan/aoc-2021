@@ -128,50 +128,55 @@ if __name__ == "__main__":
                 failed[i][j] = True
                 print("Failed")
 
-    print("Part 1: ", max([len(scanner) for scanner in scanners]))
+    lengths = [len(scanner) for scanner in scanners]
+    print("Part 1: ", max(lengths))
 
-    print(offsets)
+    file = open("beacons.txt", "w")
+    file.write("\n".join(list(map(str, scanners[lengths.index(max(lengths))]))))
+    file.close()
 
     # Part 2
-    while None in offsets:
-        for (i1, j1), value1 in np.ndenumerate(offsets):
-            if i1 == j1:
-                offsets[i1, j1] = (0, 0, 0)
-                continue
-            if value1 is not None:
-                if offsets[j1, i1] is not None:
-                    offsets[j1, i1] = (-value1[0], -value1[1], -value1[2])
 
-                if rotations[i1, j1] is not None:
+    beacons = set()
+    file = open("beacons.txt", "r")
+    for line in file:
+        line = line.strip()
+        if len(line) != 0:
+            beacons.add(tuple(eval(line)))
+    file.close()
 
-                    for (j2,), value2 in np.ndenumerate(offsets[i1, :]):
-                        if i1 == j2:
-                            offsets[i1, j2] = (0, 0, 0)
-                            continue
-                        if j1 == j2:
-                            continue
-                        if value2 is not None:
-                            # Rotations needs to be accounted for
-                            offsets[j1, j2] = subtract(value2, value1)
+    scanner_locations = []
 
-                    for (i2,), value2 in np.ndenumerate(offsets[:, j1]):
-                        if i2 == j1:
-                            offsets[i2, j1] = (0, 0, 0)
-                            continue
-                        if i1 == i2:
-                            continue
-                        if value2 is not None:
-                            # Rotations need to be accounted for
-                            offsets[i1, i2] = subtract(value1, value2)
+    for i, scanner in enumerate(scanners):
+        print("Aligning ", i)
+        result, aligned, offset, rotation = align(beacons, scanner)
+        if aligned is False:
+            print("Error")
+        scanner_locations.append(offset)
 
-    # Offsets need to be rotated before composing
-    print(offsets)
+    file = open("scanners.txt", "w")
+    file.write("\n".join(list(map(str, scanner_locations))))
+    file.close()
+
+    scanner_positions = []
+    file = open("scanners.txt", "r")
+    for line in file:
+        line = line.strip()
+        if len(line) != 0:
+            scanner_positions.append(tuple(eval(line)))
+    file.close()
+
+    offsets = np.ndarray([len(scanners), len(scanners)], dtype=tuple)
+    offsets.fill((0, 0, 0))
+    comb = combinations(range(len(scanners)), 2)
+    for (i, j) in comb:
+        if i != j:
+            offsets[i, j] = subtract(scanner_positions[j], scanner_positions[i])
 
     distances = np.ndarray([len(scanners), len(scanners)], dtype=int)
     for index, value in np.ndenumerate(offsets):
         distances[index] = abs(value[0]) + abs(value[1]) + abs(value[2])
 
     print(distances)
-    print(np.max(distances))
 
-    print("Part 2: ")
+    print("Part 2: ", np.max(distances))
